@@ -8,21 +8,25 @@ import Data.Semigroup ((<>))
 import Data.Semiring ((+))
 import Data.Show (show)
 import Data.Symbol (class IsSymbol, SProxy(..), reflectSymbol)
-import Type.Proxy (Proxy(..))
 import Type.Row (class RowToList, Cons, Nil, RLProxy(..), kind RowList)
 
-data SELECT (columns :: # Type)
+foreign import kind SQL
 
-data FROM (table :: Symbol) a
+foreign import data SELECT :: # Type -> SQL
 
-data LIMIT (count :: Nat) a
+foreign import data FROM :: Symbol -> SQL -> SQL
 
-type ApplyFlipped x f = f x
+foreign import data LIMIT :: Nat -> SQL -> SQL
+
+data SQLProxy (sql :: SQL)
+  = SQLProxy
+
+type ApplyFlipped (x :: SQL) (f :: SQL -> SQL) = f x
 
 infix 0 type ApplyFlipped as #
 
-class ToSQL a where
-  toSQL :: Proxy a -> String
+class ToSQL (sql :: SQL) where
+  toSQL :: SQLProxy sql -> String
 
 instance toSQLSELECT
   :: ( RowToList columns rl
@@ -38,7 +42,7 @@ instance toSQLFROM
      )
   => ToSQL (FROM table sql) where
     toSQL _ =
-      toSQL (Proxy :: Proxy sql) <> " FROM " <> reflectSymbol (SProxy :: SProxy table)
+      toSQL (SQLProxy :: SQLProxy sql) <> " FROM " <> reflectSymbol (SProxy :: SProxy table)
 
 instance toSQLLIMIT
   :: ( ToInt count
@@ -46,7 +50,7 @@ instance toSQLLIMIT
      )
   => ToSQL (LIMIT count sql) where
     toSQL _ =
-      toSQL (Proxy :: Proxy sql) <> " LIMIT " <> show (toInt (NProxy :: NProxy count))
+      toSQL (SQLProxy :: SQLProxy sql) <> " LIMIT " <> show (toInt (NProxy :: NProxy count))
 
 class ToSQLSELECT (columns :: RowList) where
   toColumn :: RLProxy columns -> List String
