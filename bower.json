@@ -1,0 +1,18 @@
+{
+  "name": "purescript-sql",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "output"
+  ],
+  "dependencies": {
+    "purescript-prelude": "^3.1.0",
+    "purescript-console": "^3.0.0",
+    "purescript-typelevel-prelude": "^2.4.0",
+    "purescript-lists": "^4.9.1"
+  },
+  "devDependencies": {
+    "purescript-psci-support": "^3.0.0"
+  }
+}
