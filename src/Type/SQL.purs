@@ -1,4 +1,4 @@
-module SQL where
+module Type.SQL where
 
 import Data.Foldable (intercalate)
 import Data.List ((:))

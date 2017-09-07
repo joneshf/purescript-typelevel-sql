@@ -4,7 +4,7 @@ import Prelude
 
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE, log)
-import SQL (type (#), FROM, LIMIT, S, SELECT, SQLProxy(..), Z, toSQL)
+import Type.SQL (type (#), FROM, LIMIT, S, SELECT, SQLProxy(..), Z, toSQL)
 
 main :: forall e. Eff (console :: CONSOLE | e) Unit
 main = do
