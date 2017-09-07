@@ -4,11 +4,14 @@ import Prelude
 
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE, log)
-import SQL (type (#), FROM(..), LIMIT(..), S, SELECT(..), Z, toSQL)
+import SQL (type (#), FROM, LIMIT, S, SELECT, Z, toSQL)
+import Type.Proxy (Proxy(..))
 
 main :: forall e. Eff (console :: CONSOLE | e) Unit
 main = do
-  let query :: SELECT (foo :: Int, bar :: String) # FROM "quux" # LIMIT (S (S Z))
-      query = SELECT # FROM # LIMIT
+  log $ toSQL (Proxy :: Proxy Query)
 
-  log $ toSQL query
+type Query
+  = SELECT (foo :: Int, bar :: String)
+  # FROM "quux"
+  # LIMIT (S (S Z))

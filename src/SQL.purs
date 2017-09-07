@@ -8,23 +8,21 @@ import Data.Semigroup ((<>))
 import Data.Semiring ((+))
 import Data.Show (show)
 import Data.Symbol (class IsSymbol, SProxy(..), reflectSymbol)
+import Type.Proxy (Proxy(..))
 import Type.Row (class RowToList, Cons, Nil, RLProxy(..), kind RowList)
 
 data SELECT (columns :: # Type)
-  = SELECT
 
 data FROM (table :: Symbol) a
-  = FROM a
 
 data LIMIT (count :: Nat) a
-  = LIMIT a
 
 type ApplyFlipped x f = f x
 
 infix 0 type ApplyFlipped as #
 
 class ToSQL a where
-  toSQL :: a -> String
+  toSQL :: Proxy a -> String
 
 instance toSQLSELECT
   :: ( RowToList columns rl
@@ -39,16 +37,16 @@ instance toSQLFROM
      , ToSQL sql
      )
   => ToSQL (FROM table sql) where
-    toSQL (FROM sql) =
-      toSQL sql <> " FROM " <> reflectSymbol (SProxy :: SProxy table)
+    toSQL _ =
+      toSQL (Proxy :: Proxy sql) <> " FROM " <> reflectSymbol (SProxy :: SProxy table)
 
 instance toSQLLIMIT
   :: ( ToInt count
      , ToSQL sql
      )
   => ToSQL (LIMIT count sql) where
-    toSQL (LIMIT sql) =
-      toSQL sql <> " LIMIT " <> show (toInt (NProxy :: NProxy count))
+    toSQL _ =
+      toSQL (Proxy :: Proxy sql) <> " LIMIT " <> show (toInt (NProxy :: NProxy count))
 
 class ToSQLSELECT (columns :: RowList) where
   toColumn :: RLProxy columns -> List String
