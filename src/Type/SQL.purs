@@ -5,9 +5,9 @@ import Data.List ((:))
 import Data.List.Types (List)
 import Data.Monoid (mempty)
 import Data.Semigroup ((<>))
-import Data.Semiring ((+))
 import Data.Show (show)
 import Data.Symbol (class IsSymbol, SProxy(..), reflectSymbol)
+import Type.Nat (class ToInt, NProxy(..), toInt, kind Nat)
 import Type.Row (class RowToList, Cons, Nil, RLProxy(..), kind RowList)
 
 foreign import kind SQL
@@ -20,10 +20,6 @@ foreign import data LIMIT :: Nat -> SQL -> SQL
 
 data SQLProxy (sql :: SQL)
   = SQLProxy
-
-type ApplyFlipped (x :: SQL) (f :: SQL -> SQL) = f x
-
-infix 0 type ApplyFlipped as #
 
 class ToSQL (sql :: SQL) where
   toSQL :: SQLProxy sql -> String
@@ -65,21 +61,3 @@ instance toSQLSELECTCons
   => ToSQLSELECT (Cons column don't_care rest) where
     toColumn _ =
       reflectSymbol (SProxy :: SProxy column) : toColumn (RLProxy :: RLProxy rest)
-
-foreign import kind Nat
-
-foreign import data Z :: Nat
-
-foreign import data S :: Nat -> Nat
-
-data NProxy (nat :: Nat)
-  = NProxy
-
-class ToInt (nat :: Nat) where
-  toInt :: NProxy nat -> Int
-
-instance toIntZ :: ToInt Z where
-  toInt _ = 0
-
-instance toIntS :: (ToInt n) => ToInt (S n) where
-  toInt _ = 1 + toInt (NProxy :: NProxy n)
