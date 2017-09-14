@@ -7,6 +7,7 @@ import Data.Monoid (mempty)
 import Data.Semigroup ((<>))
 import Data.Show (show)
 import Data.Symbol (class IsSymbol, SProxy(..), reflectSymbol)
+import SQL.Table (TProxy(..), Table, kind TABLE)
 import Type.Nat (class ToInt, NProxy(..), toInt, kind Nat)
 import Type.Row (class RowToList, Cons, Nil, RLProxy(..), kind RowList)
 
@@ -14,7 +15,7 @@ foreign import kind SQL
 
 foreign import data SELECT :: # Type -> SQL
 
-foreign import data FROM :: Symbol -> SQL -> SQL
+foreign import data FROM :: TABLE -> SQL -> SQL
 
 foreign import data LIMIT :: Nat -> SQL -> SQL
 
@@ -33,12 +34,12 @@ instance toSQLSELECT
       "SELECT " <> intercalate ", " (toColumn (RLProxy :: RLProxy rl))
 
 instance toSQLFROM
-  :: ( IsSymbol table
+  :: ( ToSQLTableName table
      , ToSQL sql
      )
   => ToSQL (FROM table sql) where
     toSQL _ =
-      toSQL (SQLProxy :: SQLProxy sql) <> " FROM " <> reflectSymbol (SProxy :: SProxy table)
+      toSQL (SQLProxy :: SQLProxy sql) <> " FROM " <> toTableName (TProxy :: TProxy table)
 
 instance toSQLLIMIT
   :: ( ToInt count
@@ -61,3 +62,12 @@ instance toSQLSELECTCons
   => ToSQLSELECT (Cons column don't_care rest) where
     toColumn _ =
       reflectSymbol (SProxy :: SProxy column) : toColumn (RLProxy :: RLProxy rest)
+
+class ToSQLTableName (table :: TABLE) where
+  toTableName :: TProxy table -> String
+
+instance toSQLTableNameTable
+  :: ( IsSymbol name
+     )
+  => ToSQLTableName (Table name columns) where
+    toTableName _ = reflectSymbol (SProxy :: SProxy name)
