@@ -18,6 +18,8 @@ foreign import data SELECT :: # Type -> SQL
 
 foreign import data FROM :: TABLE -> SQL -> SQL
 
+foreign import data JOIN :: TABLE -> SQL -> SQL
+
 foreign import data LIMIT :: Nat -> SQL -> SQL
 
 data SQLProxy (sql :: SQL)
@@ -40,6 +42,28 @@ instance sqlColumnsSELECT
   :: ( RowToList cs columns
      )
   => SQLColumns (SELECT cs) columns
+
+instance sqlColumnsFROM
+  :: ( SQLColumns sql columns
+     )
+  => SQLColumns (FROM table sql) columns
+
+class TableRow (sql :: SQL) (row :: # Type) | sql -> row
+
+instance tableRowFROM
+  :: ( AppendSymbol tableName "." dottedTableName
+     , IsSymbol tableName
+     , ListToRow prefixedTableColumns prefixedTableRow
+     , ListToRow sqlColumns sqlRow
+     , ListToRow tableColumns tableRow
+     , Prefixed dottedTableName tableColumns prefixedTableColumns
+     , SQLColumns sql sqlColumns
+     , TableColumns table tableColumns
+     , TableName table tableName
+     , Union prefixedTableRow tableRow allTableRows
+     , Union sqlRow who_cares allTableRows
+     )
+  => TableRow (FROM table sql) allTableRows
 
 class ToSQL (sql :: SQL) where
   toSQL :: SQLProxy sql -> String
@@ -69,6 +93,37 @@ instance toSQLFROM
   => ToSQL (FROM table sql) where
     toSQL _ =
       toSQL (SQLProxy :: SQLProxy sql) <> " FROM " <> reflectSymbol (SProxy :: SProxy tableName)
+
+instance toSQLJOIN
+  :: ( AppendSymbol fromTableName "." fromDottedTableName
+     , AppendSymbol joinTableName "." joinDottedTableName
+     , IsSymbol fromTableName
+     , IsSymbol joinTableName
+     , ListToRow fromPrefixedTableColumns fromPrefixedTableRow
+     , ListToRow fromTableColumns fromTableRow
+     , ListToRow joinPrefixedTableColumns joinPrefixedTableRow
+     , ListToRow joinTableColumns joinTableRow
+     , ListToRow sqlColumns sqlRow
+     , Prefixed fromDottedTableName fromTableColumns fromPrefixedTableColumns
+     , Prefixed joinDottedTableName joinTableColumns joinPrefixedTableColumns
+     , SQLColumns sql sqlColumns
+     , TableColumns fromTable fromTableColumns
+     , TableColumns joinTable joinTableColumns
+     , TableName fromTable fromTableName
+     , TableName joinTable joinTableName
+     , ToSQL sql
+     , Union fromAllTableRows joinAllTableRows allTableRows
+     , Union fromPrefixedTableRow fromTableRow fromAllTableRows
+     , Union joinPrefixedTableRow joinTableRow joinAllTableRows
+     , Union sqlRow who_cares allTableRows
+     )
+  => ToSQL (JOIN joinTable (FROM fromTable sql)) where
+    toSQL _ =
+      toSQL (SQLProxy :: SQLProxy sql)
+        <> " FROM "
+        <> reflectSymbol (SProxy :: SProxy fromTableName)
+        <> " JOIN "
+        <> reflectSymbol (SProxy :: SProxy joinTableName)
 
 instance toSQLLIMIT
   :: ( ToInt count
