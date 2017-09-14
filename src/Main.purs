@@ -6,15 +6,20 @@ import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE, log)
 import SQL.Table (Table)
 import Type.Nat (TWO)
+import Type.Row (RProxy(..))
 import Type.SQL (FROM, JOIN, LIMIT, SELECT, SQLProxy(..), toSQL)
 import Type.SQL.Function (type (#))
 
 main :: forall e. Eff (console :: CONSOLE | e) Unit
 main = do
-  log $ toSQL (SQLProxy :: SQLProxy Query)
+  log $ toSQL (SQLProxy :: SQLProxy Query) RProxy
 
 type Query
-  = SELECT ("quux.foo" :: Int, bar :: String, "corge.foo" :: Boolean)
+  = SELECT
+    ( "quux.foo" :: Int
+    , bar :: String
+    , "corge.foo" :: Boolean
+    )
   # FROM Quux
   # JOIN Corge
   # LIMIT TWO

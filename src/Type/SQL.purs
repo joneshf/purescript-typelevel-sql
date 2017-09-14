@@ -10,7 +10,7 @@ import Data.Symbol (class IsSymbol, SProxy(..), reflectSymbol)
 import SQL.Table (class TableColumns, class TableName, kind TABLE)
 import Type.Data.Symbol (class AppendSymbol)
 import Type.Nat (class ToInt, NProxy(..), toInt, kind Nat)
-import Type.Row (class ListToRow, class RowToList, Cons, Nil, RLProxy(..), kind RowList)
+import Type.Row (class ListToRow, class RowToList, Cons, Nil, RLProxy(RLProxy), RProxy(..), kind RowList)
 
 foreign import kind SQL
 
@@ -65,15 +65,15 @@ instance tableRowFROM
      )
   => TableRow (FROM table sql) allTableRows
 
-class ToSQL (sql :: SQL) where
-  toSQL :: SQLProxy sql -> String
+class ToSQL (sql :: SQL) (columns :: # Type) where
+  toSQL :: SQLProxy sql -> RProxy columns -> String
 
 instance toSQLSELECT
   :: ( RowToList columns rl
      , ToSQLSELECT rl
      )
-  => ToSQL (SELECT columns) where
-    toSQL _ =
+  => ToSQL (SELECT columns) don't_care where
+    toSQL _ _ =
       "SELECT " <> intercalate ", " (toColumn (RLProxy :: RLProxy rl))
 
 instance toSQLFROM
@@ -86,52 +86,47 @@ instance toSQLFROM
      , SQLColumns sql sqlColumns
      , TableColumns table tableColumns
      , TableName table tableName
-     , ToSQL sql
+     , ToSQL sql additionalRows
+     , Union allTableRows rows additionalRows
      , Union prefixedTableRow tableRow allTableRows
-     , Union sqlRow who_cares allTableRows
+     , Union sqlRow who_cares additionalRows
      )
-  => ToSQL (FROM table sql) where
-    toSQL _ =
-      toSQL (SQLProxy :: SQLProxy sql) <> " FROM " <> reflectSymbol (SProxy :: SProxy tableName)
+  => ToSQL (FROM table sql) rows where
+    toSQL _ _ =
+      toSQL (SQLProxy :: SQLProxy sql) (RProxy :: RProxy additionalRows)
+        <> " FROM "
+        <> reflectSymbol (SProxy :: SProxy tableName)
 
 instance toSQLJOIN
-  :: ( AppendSymbol fromTableName "." fromDottedTableName
-     , AppendSymbol joinTableName "." joinDottedTableName
-     , IsSymbol fromTableName
-     , IsSymbol joinTableName
-     , ListToRow fromPrefixedTableColumns fromPrefixedTableRow
-     , ListToRow fromTableColumns fromTableRow
-     , ListToRow joinPrefixedTableColumns joinPrefixedTableRow
-     , ListToRow joinTableColumns joinTableRow
+  :: ( AppendSymbol tableName "." dottedTableName
+     , IsSymbol tableName
+     , ListToRow prefixedTableColumns prefixedTableRow
+     , ListToRow tableColumns tableRow
      , ListToRow sqlColumns sqlRow
-     , Prefixed fromDottedTableName fromTableColumns fromPrefixedTableColumns
-     , Prefixed joinDottedTableName joinTableColumns joinPrefixedTableColumns
+     , Prefixed dottedTableName tableColumns prefixedTableColumns
      , SQLColumns sql sqlColumns
-     , TableColumns fromTable fromTableColumns
-     , TableColumns joinTable joinTableColumns
-     , TableName fromTable fromTableName
-     , TableName joinTable joinTableName
-     , ToSQL sql
-     , Union fromAllTableRows joinAllTableRows allTableRows
-     , Union fromPrefixedTableRow fromTableRow fromAllTableRows
-     , Union joinPrefixedTableRow joinTableRow joinAllTableRows
-     , Union sqlRow who_cares allTableRows
+     , TableColumns table tableColumns
+     , TableName table tableName
+     , ToSQL sql allTableRows
+     , Union allTableRows rows additionalRows
+     , Union prefixedTableRow tableRow allTableRows
+     , Union sqlRow who_cares additionalRows
      )
-  => ToSQL (JOIN joinTable (FROM fromTable sql)) where
-    toSQL _ =
-      toSQL (SQLProxy :: SQLProxy sql)
-        <> " FROM "
-        <> reflectSymbol (SProxy :: SProxy fromTableName)
+  => ToSQL (JOIN table sql) rows where
+    toSQL _ _ =
+      toSQL (SQLProxy :: SQLProxy sql) (RProxy :: RProxy allTableRows)
         <> " JOIN "
-        <> reflectSymbol (SProxy :: SProxy joinTableName)
+        <> reflectSymbol (SProxy :: SProxy tableName)
 
 instance toSQLLIMIT
   :: ( ToInt count
-     , ToSQL sql
+     , ToSQL sql don't_care
      )
-  => ToSQL (LIMIT count sql) where
-    toSQL _ =
-      toSQL (SQLProxy :: SQLProxy sql) <> " LIMIT " <> show (toInt (NProxy :: NProxy count))
+  => ToSQL (LIMIT count sql) don't_care where
+    toSQL _ don't_care =
+      toSQL (SQLProxy :: SQLProxy sql) don't_care
+        <> " LIMIT "
+        <> show (toInt (NProxy :: NProxy count))
 
 class ToSQLSELECT (columns :: RowList) where
   toColumn :: RLProxy columns -> List String
