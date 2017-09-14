@@ -1,13 +1,17 @@
 module SQL.Table where
 
-
-foreign import kind COLUMN
+import Type.Row (class RowToList, kind RowList)
 
 foreign import kind TABLE
 
-foreign import data Integer :: COLUMN
-
-foreign import data Table :: Symbol -> # COLUMN -> TABLE
+foreign import data Table :: Symbol -> # Type -> TABLE
 
 data TProxy (table :: TABLE)
   = TProxy
+
+class TableColumns (table :: TABLE) (columns :: RowList) | table -> columns
+
+instance tableColumnsTable
+  :: ( RowToList cs columns
+     )
+  => TableColumns (Table name cs) columns

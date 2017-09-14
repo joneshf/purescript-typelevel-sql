@@ -7,9 +7,9 @@ import Data.Monoid (mempty)
 import Data.Semigroup ((<>))
 import Data.Show (show)
 import Data.Symbol (class IsSymbol, SProxy(..), reflectSymbol)
-import SQL.Table (TProxy(..), Table, kind TABLE)
+import SQL.Table (class TableColumns, TProxy(..), Table, kind TABLE)
 import Type.Nat (class ToInt, NProxy(..), toInt, kind Nat)
-import Type.Row (class RowToList, Cons, Nil, RLProxy(..), kind RowList)
+import Type.Row (class ListToRow, class RowToList, Cons, Nil, RLProxy(..), kind RowList)
 
 foreign import kind SQL
 
@@ -21,6 +21,13 @@ foreign import data LIMIT :: Nat -> SQL -> SQL
 
 data SQLProxy (sql :: SQL)
   = SQLProxy
+
+class SQLColumns (sql :: SQL) (columns :: RowList) | sql -> columns
+
+instance sqlColumnsSELECT
+  :: ( RowToList cs columns
+     )
+  => SQLColumns (SELECT cs) columns
 
 class ToSQL (sql :: SQL) where
   toSQL :: SQLProxy sql -> String
@@ -34,8 +41,13 @@ instance toSQLSELECT
       "SELECT " <> intercalate ", " (toColumn (RLProxy :: RLProxy rl))
 
 instance toSQLFROM
-  :: ( ToSQLTableName table
+  :: ( ListToRow sqlColumns sqlRow
+     , ListToRow tableColumns tableRow
+     , SQLColumns sql sqlColumns
+     , TableColumns table tableColumns
+     , ToSQLTableName table
      , ToSQL sql
+     , Union sqlRow who_cares tableRow
      )
   => ToSQL (FROM table sql) where
     toSQL _ =

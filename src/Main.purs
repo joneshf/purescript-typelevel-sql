@@ -19,4 +19,8 @@ type Query
   # LIMIT TWO
 
 type Quux
-  = Table "quux" ()
+  = Table
+    "quux"
+    ( foo :: Int
+    , bar :: String
+    )
