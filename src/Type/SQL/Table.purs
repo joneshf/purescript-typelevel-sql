@@ -15,3 +15,7 @@ instance tableColumnsTable
   :: ( RowToList cs columns
      )
   => TableColumns (Table name cs) columns
+
+class TableName (table :: TABLE) (name :: Symbol) | table -> name
+
+instance toSQLTableNameTable :: TableName (Table name columns) name

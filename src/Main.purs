@@ -14,7 +14,7 @@ main = do
   log $ toSQL (SQLProxy :: SQLProxy Query)
 
 type Query
-  = SELECT (foo :: Int, bar :: String)
+  = SELECT ("quux.foo" :: Int, bar :: String)
   # FROM Quux
   # LIMIT TWO
 
@@ -23,4 +23,5 @@ type Quux
     "quux"
     ( foo :: Int
     , bar :: String
+    , baz :: Boolean
     )

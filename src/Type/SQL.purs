@@ -7,7 +7,8 @@ import Data.Monoid (mempty)
 import Data.Semigroup ((<>))
 import Data.Show (show)
 import Data.Symbol (class IsSymbol, SProxy(..), reflectSymbol)
-import SQL.Table (class TableColumns, TProxy(..), Table, kind TABLE)
+import SQL.Table (class TableColumns, class TableName, kind TABLE)
+import Type.Data.Symbol (class AppendSymbol)
 import Type.Nat (class ToInt, NProxy(..), toInt, kind Nat)
 import Type.Row (class ListToRow, class RowToList, Cons, Nil, RLProxy(..), kind RowList)
 
@@ -21,6 +22,17 @@ foreign import data LIMIT :: Nat -> SQL -> SQL
 
 data SQLProxy (sql :: SQL)
   = SQLProxy
+
+class Prefixed (prefix :: Symbol) (rowList :: RowList) (prefixed :: RowList)
+  | prefix rowList -> prefixed
+
+instance prefixedNil :: Prefixed prefix Nil Nil
+
+instance prefixedCons
+  :: ( AppendSymbol prefix label prefixedLabel
+     , Prefixed prefix rowTail prefixedTail
+     )
+  => Prefixed prefix (Cons label ty rowTail) (Cons prefixedLabel ty prefixedTail)
 
 class SQLColumns (sql :: SQL) (columns :: RowList) | sql -> columns
 
@@ -41,17 +53,22 @@ instance toSQLSELECT
       "SELECT " <> intercalate ", " (toColumn (RLProxy :: RLProxy rl))
 
 instance toSQLFROM
-  :: ( ListToRow sqlColumns sqlRow
+  :: ( AppendSymbol tableName "." dottedTableName
+     , IsSymbol tableName
+     , ListToRow prefixedTableColumns prefixedTableRow
+     , ListToRow sqlColumns sqlRow
      , ListToRow tableColumns tableRow
+     , Prefixed dottedTableName tableColumns prefixedTableColumns
      , SQLColumns sql sqlColumns
      , TableColumns table tableColumns
-     , ToSQLTableName table
+     , TableName table tableName
      , ToSQL sql
-     , Union sqlRow who_cares tableRow
+     , Union prefixedTableRow tableRow allTableRows
+     , Union sqlRow who_cares allTableRows
      )
   => ToSQL (FROM table sql) where
     toSQL _ =
-      toSQL (SQLProxy :: SQLProxy sql) <> " FROM " <> toTableName (TProxy :: TProxy table)
+      toSQL (SQLProxy :: SQLProxy sql) <> " FROM " <> reflectSymbol (SProxy :: SProxy tableName)
 
 instance toSQLLIMIT
   :: ( ToInt count
@@ -74,12 +91,3 @@ instance toSQLSELECTCons
   => ToSQLSELECT (Cons column don't_care rest) where
     toColumn _ =
       reflectSymbol (SProxy :: SProxy column) : toColumn (RLProxy :: RLProxy rest)
-
-class ToSQLTableName (table :: TABLE) where
-  toTableName :: TProxy table -> String
-
-instance toSQLTableNameTable
-  :: ( IsSymbol name
-     )
-  => ToSQLTableName (Table name columns) where
-    toTableName _ = reflectSymbol (SProxy :: SProxy name)
