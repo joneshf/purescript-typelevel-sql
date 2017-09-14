@@ -19,3 +19,7 @@ instance toIntZ :: ToInt Z where
 
 instance toIntS :: (ToInt n) => ToInt (S n) where
   toInt _ = 1 + toInt (NProxy :: NProxy n)
+
+type ZERO = Z
+type ONE = S ZERO
+type TWO = S ONE

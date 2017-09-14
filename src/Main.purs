@@ -4,7 +4,7 @@ import Prelude
 
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE, log)
-import Type.Nat (S, Z)
+import Type.Nat (TWO)
 import Type.SQL (FROM, LIMIT, SELECT, SQLProxy(..), toSQL)
 import Type.SQL.Function (type (#))
 
@@ -15,4 +15,4 @@ main = do
 type Query
   = SELECT (foo :: Int, bar :: String)
   # FROM "quux"
-  # LIMIT (S (S Z))
+  # LIMIT TWO
