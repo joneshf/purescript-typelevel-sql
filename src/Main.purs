@@ -13,6 +13,7 @@ import Type.SQL.Function (type (#))
 main :: forall e. Eff (console :: CONSOLE | e) Unit
 main = do
   log $ toSQL (SQLProxy :: SQLProxy Query) RProxy
+  -- SELECT bar, corge.foo, quux.foo FROM quux JOIN corge LIMIT 2
 
 type Query
   = SELECT
